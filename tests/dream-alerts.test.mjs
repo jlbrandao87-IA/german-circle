@@ -1,0 +1,18 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {collectDreamAlerts,DEFAULT_ALERT_SETTINGS,formatAlertDigest,validAlertSettings} from '../lib/dream-alerts.ts';
+const now=new Date('2026-11-06T12:00:00Z');
+const dream={id:'d1',kind:'dream',brand:'BMW',model:'X5',version:'',year_from:2021,year_to:2024,max_mileage_km:70000,fuel:'indiferente',budget_eur:60000,priority:1};
+const listing={id:'a',brand:'BMW',model:'X5',version:'xDrive40i',year:2022,mileage_km:35000,fuel:'gasolina',asking_price_eur:50000,country:'DE',source_name:'Licensed test',source_url:'https://example.org/car',observed_at:'2026-11-04T12:00:00Z',verified_at:'2026-11-05T12:00:00Z',expires_at:'2026-11-20T12:00:00Z'};
+const history=[{listing_id:'a',price_eur:55000,observed_at:'2026-10-30T12:00:00Z'},{listing_id:'a',price_eur:50000,observed_at:'2026-11-05T12:00:00Z'}];
+test('defaults validate',()=>assert.equal(validAlertSettings(DEFAULT_ALERT_SETTINGS),true));
+test('invalid thresholds rejected',()=>assert.equal(validAlertSettings({...DEFAULT_ALERT_SETTINGS,min_drop_pct:0}),false));
+test('weekly alerts include new listings and observed price reductions',()=>{const a=collectDreamAlerts([dream],[listing],history,DEFAULT_ALERT_SETTINGS,now);assert.equal(a.length,2);assert.deepEqual(new Set(a.map(x=>x.kind)),new Set(['new_match','price_drop']));});
+test('off frequency produces no alerts',()=>assert.equal(collectDreamAlerts([dream],[listing],history,{...DEFAULT_ALERT_SETTINGS,frequency:'off'},now).length,0));
+test('daily period excludes old newly observed ads',()=>assert.equal(collectDreamAlerts([dream],[listing],history,{...DEFAULT_ALERT_SETTINGS,frequency:'daily',include_price_drops:false},now).length,0));
+test('strict threshold excludes modest drops',()=>assert.equal(collectDreamAlerts([dream],[listing],history,{...DEFAULT_ALERT_SETTINGS,min_drop_pct:15,include_new_matches:false},now).length,0));
+test('stale data excluded',()=>assert.equal(collectDreamAlerts([dream],[{...listing,verified_at:'2026-10-01T12:00:00Z'}],history,DEFAULT_ALERT_SETTINGS,now).length,0));
+test('unrelated models excluded',()=>assert.equal(collectDreamAlerts([{...dream,model:'X3'}],[listing],history,DEFAULT_ALERT_SETTINGS,now).length,0));
+test('single observation never implies price drop',()=>assert.equal(collectDreamAlerts([dream],[listing],[history[1]],{...DEFAULT_ALERT_SETTINGS,include_new_matches:false},now).length,0));
+test('digest plainly states no full import landed cost',()=>{const a=collectDreamAlerts([dream],[listing],history,DEFAULT_ALERT_SETTINGS,now);assert.match(formatAlertDigest(a,DEFAULT_ALERT_SETTINGS,now),/não representam custo final de importação/);});
+test('empty digest does not suggest complete market coverage',()=>assert.match(formatAlertDigest([],DEFAULT_ALERT_SETTINGS,now),/não representa o mercado completo/));

@@ -1,0 +1,2 @@
+id,make,model,trim,year,km,fuel,price_eur,country,url,observed_at
+example-1,BMW,X5,xDrive40i,2023,35000,Petrol,46000,Germany,https://example.org/example-1,2026-11-05T09:00:00Z

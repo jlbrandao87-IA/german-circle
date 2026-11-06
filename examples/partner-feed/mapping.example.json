@@ -1,0 +1,11 @@
+{
+  "columns": {
+    "supplier_listing_id":"id", "brand":"make", "model":"model", "version":"trim",
+    "year":"year", "mileage_km":"km", "fuel":"fuel", "asking_price_eur":"price_eur",
+    "country":"country", "listing_url":"url", "observed_at":"observed_at"
+  },
+  "brand_aliases":{"Mercedes":"Mercedes-Benz"},
+  "fuel_aliases":{"Petrol":"gasolina","Diesel":"diesel"},
+  "country_aliases":{"Germany":"DE","Portugal":"PT"},
+  "decimal_separator":"."
+}

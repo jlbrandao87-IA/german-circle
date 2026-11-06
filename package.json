@@ -1,0 +1,36 @@
+{
+  "name": "german-circle-platform",
+  "version": "1.5.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "check": "npm run typecheck && npm test && npm run build",
+    "feed:preview": "node --experimental-strip-types scripts/preview-market-feed.mjs",
+    "feed:csv:preview": "node --experimental-strip-types scripts/preview-partner-csv.mjs",
+    "preflight": "node scripts/preflight.mjs",
+    "smoke:staging": "node scripts/staging-smoke.mjs"
+  },
+  "dependencies": {
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "@supabase/supabase-js": "^2.57.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "overrides": {
+    "postcss": "8.5.32"
+  }
+}

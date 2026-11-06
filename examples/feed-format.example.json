@@ -1,0 +1,15 @@
+[
+  {
+    "supplier_listing_id": "REFERENCE-ONLY-123",
+    "brand": "Porsche",
+    "model": "Macan",
+    "version": "GTS",
+    "year": 2023,
+    "mileage_km": 24000,
+    "fuel": "gasolina",
+    "asking_price_eur": 62000,
+    "country": "DE",
+    "listing_url": "https://example.org/REFERENCE-ONLY-123",
+    "observed_at": "2026-11-06T12:00:00Z"
+  }
+]

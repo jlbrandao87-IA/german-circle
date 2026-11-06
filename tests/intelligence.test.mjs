@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {matchDream, MODEL_CATALOG,validMarketListing} from '../lib/intelligence.ts';
+const now=new Date('2026-11-06T12:00:00Z');
+const dream={brand:'BMW',model:'X5',version:'xDrive40i',year_from:2021,year_to:2024,max_mileage_km:65000,fuel:'gasolina',budget_eur:60000};
+const example={id:'fixture-1',brand:'BMW',model:'X5',version:'xDrive40i',year:2022,mileage_km:49000,fuel:'gasolina',asking_price_eur:51000,country:'DE',source_name:'Exemplo de teste',source_url:'https://example.org/car/1',observed_at:'2026-11-05T08:00:00Z',verified_at:'2026-11-05T09:00:00Z',expires_at:'2026-11-10T08:00:00Z'};
+test('catalog covers only the four exclusive brands',()=>assert.deepEqual(Object.keys(MODEL_CATALOG).sort(),['Audi','BMW','Mercedes-Benz','Porsche'].sort()));
+test('finds a compatible, current car and preserves provenance',()=>{const m=matchDream(dream,[example],now);assert.equal(m.length,1);assert.equal(m[0].listing.source_url,example.source_url);});
+test('rejects stale/expired/unverified listings',()=>{assert.equal(matchDream(dream,[{...example,expires_at:'2026-11-05T11:00:00Z'}],now).length,0);assert.equal(validMarketListing({...example,verified_at:'2026-10-15T09:00:00Z'},now),false);});
+test('rejects unknown required fields and mismatched preferences',()=>{assert.equal(matchDream(dream,[{...example,mileage_km:null}],now).length,0);assert.equal(matchDream(dream,[{...example,year:2019}],now).length,0);assert.equal(matchDream(dream,[{...example,brand:'Audi'}],now).length,0);});
+test('does not mistake German asking price for landed budget',()=>{const expensive={...example,asking_price_eur:75000};assert.equal(matchDream(dream,[expensive],now).length,1);assert.equal(matchDream(dream,[{...expensive,country:'PT'}],now).length,0);});
+test('SQL restricts edits, expires listings, and requires source authorization',()=>{const sql=readFileSync(new URL('../supabase/migrations/202611060003_market_intelligence.sql',import.meta.url),'utf8');assert.match(sql,/authorization_reference/);assert.match(sql,/status='approved'/);assert.match(sql,/revoke all on public.market_listings from anon,authenticated/);assert.match(sql,/grant select on public.market_listings to authenticated/);});

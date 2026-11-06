@@ -1,0 +1,16 @@
+import {readdirSync,readFileSync,existsSync} from 'node:fs';
+import {join} from 'node:path';
+const root=new URL('../',import.meta.url);
+const path=part=>new URL(part,root);
+let errors=[];
+const mustExist=['package.json','app/page.tsx','supabase/migrations','docs/DEPLOYMENT.md','.github/workflows/ci.yml','.env.example'];
+for(const p of mustExist) if(!existsSync(path(p))) errors.push(`Missing required: ${p}`);
+const ignore=readFileSync(path('.gitignore'),'utf8');
+for(const v of ['node_modules/','.next/','.env.*','*.tsbuildinfo']) if(!ignore.includes(v)) errors.push(`Ignore rule missing: ${v}`);
+const env=readFileSync(path('.env.example'),'utf8');
+if(/\b(?:eyJ[A-Za-z0-9_-]{30,}|sk_(?:live|test)_[A-Za-z0-9]{10,})\b/.test(env)) errors.push('Possible real token in .env.example');
+const files=readdirSync(path('supabase/migrations')).filter(x=>x.endsWith('.sql')).sort();
+if(files.length<8) errors.push('Unexpected missing migrations');
+console.log(`German Circle release audit: ${files.length} migrations, ${errors.length} issue(s)`);
+for(const e of errors)console.error('FAIL:',e);
+if(errors.length)process.exitCode=1;

@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {blankCostInputs,evaluation,EXPENSE_KEYS} from '../lib/import-cost.ts';
+const now=new Date('2026-11-06T12:00:00Z');
+const filled=()=>{const v=blankCostInputs();v.purchase_eur=40000;for(const k of EXPENSE_KEYS)v.expenses[k]=0;v.expenses.isv=5000;v.expenses.transport=1200;return v;};
+test('blank quote cannot become a landed price',()=>{const x=evaluation(blankCostInputs(),now);assert.equal(x.landed_total_eur,null);assert.equal(x.comparison_delta_eur,null);assert.equal(x.status,'incomplete');});
+test('a single missing tax blocks a total, rather than treating it as zero',()=>{const v=filled();v.expenses.isv=null;const x=evaluation(v,now);assert.equal(x.landed_total_eur,null);assert.match(x.missing.join(' '),/ISV/);});
+test('explicit zero is permitted, only if user confirms its applicability',()=>{const x=evaluation(filled(),now);assert.equal(x.status,'complete');assert.equal(x.landed_total_eur,46200);});
+test('a total alone does not constitute a savings claim',()=>{const x=evaluation(filled(),now);assert.equal(x.comparison_delta_eur,null);assert.equal(x.comparison_status,'unavailable');});
+test('a verified PT comparable permits an indicative difference',()=>{const v=filled();v.comparison_pt_eur=50000;v.comparison_source_url='https://example.org/pt/1';v.comparison_verified_at='2026-11-05T10:00:00Z';const x=evaluation(v,now);assert.equal(x.comparison_delta_eur,3800);});
+test('stale or insecure comparable cannot produce a difference',()=>{const v=filled();v.comparison_pt_eur=50000;v.comparison_source_url='http://example.org/car';v.comparison_verified_at='2026-11-05T10:00:00Z';assert.equal(evaluation(v,now).comparison_delta_eur,null);v.comparison_source_url='https://example.org/car';v.comparison_verified_at='2026-10-10T10:00:00Z';assert.equal(evaluation(v,now).comparison_delta_eur,null);});
+test('invalid or negative inputs never create complete quotes',()=>{const v=filled();v.expenses.vat=-100;assert.equal(evaluation(v,now).landed_total_eur,null);v.expenses.vat=NaN;assert.equal(evaluation(v,now).landed_total_eur,null);});

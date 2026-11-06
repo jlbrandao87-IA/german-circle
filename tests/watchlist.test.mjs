@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {priceTrend,priceAlert,listingStillCurrent,observationSeries} from '../lib/watchlist.ts';
+const now=new Date('2026-11-06T12:00:00Z');
+const observations=[{listing_id:'a',price_eur:62000,observed_at:'2026-11-01T10:00:00Z'},{listing_id:'a',price_eur:59000,observed_at:'2026-11-04T10:00:00Z'}];
+test('computes actual observed price drop from chronological snapshots',()=>{const t=priceTrend(observations,now);assert.equal(t.change_eur,-3000);assert.equal(Math.round(t.change_pct),-5);assert.equal(priceAlert(t,3),'drop');});
+test('one price is not a trend',()=>{const t=priceTrend(observations.slice(0,1),now);assert.equal(t.previous,null);assert.equal(priceAlert(t),null);});
+test('rejects future and impossible prices',()=>{assert.equal(priceTrend([{listing_id:'a',price_eur:-2,observed_at:'2026-11-01T10:00:00Z'}],now),null);assert.equal(priceTrend([{listing_id:'a',price_eur:1,observed_at:'2028-01-01T10:00:00Z'}],now),null);});
+test('observations cannot be mixed across listing ids',()=>assert.equal(observationSeries('a',[...observations,{listing_id:'b',price_eur:200,observed_at:observations[0].observed_at}]).length,2));
+test('expired listings do not appear as current',()=>{const listing={expires_at:'2026-11-05T00:00:00Z',verified_at:'2026-11-04T00:00:00Z'};assert.equal(listingStillCurrent(listing,now),false);});
+test('watchlist is user-owned and history is read-only for members',()=>{const sql=readFileSync(new URL('../supabase/migrations/202611060005_member_watchlists.sql',import.meta.url),'utf8');assert.match(sql,/auth\.uid\(\)/);assert.match(sql,/grant select,insert,delete on public\.member_watchlists to authenticated/);assert.match(sql,/grant select on public\.market_price_observations to authenticated/);assert.doesNotMatch(sql,/grant (?:insert|update|delete) on public\.market_price_observations/);});

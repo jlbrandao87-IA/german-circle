@@ -1,0 +1,10 @@
+{
+  "supplier_id": "example_only",
+  "display_name": "EXEMPLO — não é fornecedor autorizado",
+  "allowed_hosts": ["example.org"],
+  "countries": ["DE", "PT"],
+  "permission_reference": "DEMO-NOT-A-REAL-LICENSE",
+  "permission_valid_until": "2026-12-01T00:00:00Z",
+  "allows_display": true,
+  "allows_price_history": true
+}

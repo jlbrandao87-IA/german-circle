@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createWeeklyBrief} from '../lib/weekly-brief.ts';
+const now=new Date('2026-11-06T12:00:00Z');
+const dream={id:'d1',kind:'dream',brand:'Porsche',model:'Macan',version:'',year_from:2020,year_to:2024,max_mileage_km:60000,fuel:'indiferente',budget_eur:null,priority:1};
+const listing={id:'p1',brand:'Porsche',model:'Macan',version:'GTS',year:2022,mileage_km:41000,fuel:'gasolina',asking_price_eur:64000,country:'DE',source_name:'Fonte autorizada',source_url:'https://example.org/a',observed_at:'2026-11-02T10:00:00Z',verified_at:'2026-11-04T10:00:00Z',expires_at:'2026-11-20T10:00:00Z'};
+const obs=[{listing_id:'p1',price_eur:68000,observed_at:'2026-10-25T10:00:00Z'},{listing_id:'p1',price_eur:64000,observed_at:'2026-11-04T10:00:00Z'}];
+test('weekly report includes validated match and observed change',()=>{const r=createWeeklyBrief([dream],[listing],obs,now);assert.equal(r.totalMatching,1);assert.equal(r.totalNew,1);assert.equal(r.totalChanges,1);assert.equal(r.dreams[0].priceChanges[0].direction,'drop');});
+test('rejects stale ads and does not infer zero matches means zero market supply',()=>{const stale={...listing,verified_at:'2026-10-01T10:00:00Z'};const r=createWeeklyBrief([dream],[stale],obs,now);assert.equal(r.totalMatching,0);assert.equal(r.dreams[0].coverage,'none');});
+test('single observation cannot create a price alert',()=>{assert.equal(createWeeklyBrief([dream],[listing],[obs[1]],now).totalChanges,0);});
+test('change outside weekly window not reported as weekly alert',()=>{const oldObs=[{...obs[0],observed_at:'2026-10-20T10:00:00Z'},{...obs[1],observed_at:'2026-10-28T10:00:00Z'}];assert.equal(createWeeklyBrief([dream],[listing],oldObs,now).totalChanges,0);});
+test('other dreams and unmatched brands excluded',()=>{const b={...listing,id:'b1',brand:'BMW',model:'X5'};const r=createWeeklyBrief([dream],[listing,b],obs,now);assert.equal(r.totalMatching,1);});
+test('does not report unverified future observations',()=>{const future=[obs[0],{...obs[1],observed_at:'2026-11-09T10:00:00Z'}];assert.equal(createWeeklyBrief([dream],[listing],future,now).totalChanges,0);});
+test('owned vehicles do not enter dream brief',()=>{const r=createWeeklyBrief([{...dream,kind:'owned'}],[listing],obs,now);assert.equal(r.dreams.length,0);});
+test('caps dream count to five',()=>{const r=createWeeklyBrief(Array.from({length:8},(_,i)=>({...dream,id:String(i)})),[listing],obs,now);assert.equal(r.dreams.length,5);});
